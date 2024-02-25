@@ -14,16 +14,18 @@
 #          some output messages.
 # V1.4   - Added -y for auto (Y)es to create destination folder if 
 #          it doesn't exist 2/24/24
+# V1.5   - Added support for PyRemove_MAC.py to use -x to remove _MACOSX folders
+#          from source directory before syncing.
 
 '''
 FUTURE ENHANCEMENT:
--m (m)ove (instead of sync)
+-m (m)ove (instead of sync) - probably not implement because then it is no longer a SYNC :)
 
 -
 
 '''
 
-ver='1.4'
+ver='1.5'
 
 import os
 #from os import.system, name
@@ -32,6 +34,7 @@ import shutil
 import hashlib
 from stat import ST_SIZE
 import sys
+import PyRemove_MAC
 
 verbose = False
 cverbose = True
@@ -43,6 +46,7 @@ doCheckSum=False
 testdir=False
 fsync=False
 autoYes=False
+remove_MAC=False
 
 #objects
 class directoryandfiles:
@@ -86,6 +90,7 @@ def printhelp():
     print('     -c (C)heck with MD5 Hash after file has been copied. Will provide error')
     print('        if file does not match. Not this could significantly slow operation.')
     print('     -y Automatically input (Y)es to create root directory if it does not exist.')
+    print('     -x Remove __MACOS(X) files from source before sync')
     print('\n--These arguments can not be mixed')
     print('     --help    Prints this help file')
     print('     -h        This help file is displayed (is ignored if mixed)')
@@ -190,6 +195,9 @@ if __name__=='__main__':
     if 'y' in sys.argv[1]:
         autoYes=True
 
+    if 'x' in sys.argv[1]:
+        remove_MAC=True
+
     # ====== Check Source and Destination Directories ========
     if verbose==True: print(f'*** {sDirectory} and {dDirectory}')
     if os.path.exists(sDirectory)==False:
@@ -227,6 +235,12 @@ if __name__=='__main__':
 
 
     # ====== Main Part of Program =========
+    
+    if remove_MAC==True:
+        print('Removing _MACOSX Folders.')
+        mfiles=PyRemove_MAC.mfiles(sDirectory)
+        if mfiles.checkqty()>0 and sync==True:
+            mfiles.remove()
 
     if rverbose==True: print(f'\nScanning Source...',end=' ')
     sfiles=directoryandfiles(sDirectory,recurse) #Source Directory and Files
