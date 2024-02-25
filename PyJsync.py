@@ -83,7 +83,7 @@ def printhelp():
     print('     -v (v)erbose listing is displayed')
     print('     -d (D)o not Delete files or folders in destination if not in source') 
     print('     -r (R)ecurse sub directories') 
-    print('     -c Verify with MD5 Hash after file has been copied. Will provide error')
+    print('     -c (C)heck with MD5 Hash after file has been copied. Will provide error')
     print('        if file does not match. Not this could significantly slow operation.')
     print('     -y Automatically input (Y)es to create root directory if it does not exist.')
     print('\n--These arguments can not be mixed')
