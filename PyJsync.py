@@ -16,6 +16,7 @@
 #          it doesn't exist 2/24/24
 # V1.5   - Added support for PyRemove_MAC.py to use -x to remove _MACOSX folders
 #          from source directory before syncing.
+# V1.6   - Replace sys.argv[1] with variable args and setup -M to use the macro file M.m
 
 '''
 FUTURE ENHANCEMENT:
@@ -25,7 +26,7 @@ FUTURE ENHANCEMENT:
 
 '''
 
-ver='1.5'
+ver='1.6'
 
 import os
 #from os import.system, name
@@ -83,6 +84,8 @@ def printhelp():
     print('     -f Replicate (F)older structure. Respects additional arguments (-vdry)')   
     print('        cancels -s (sync) for files. Without -r not much will happen except')  
     print('        creating the initial destination directory if it doesn\'t exist')  
+    print('     -M Uses a (M)acro file M.m with a single line file with the arguments')
+    print('        to set as defaults. The dash - is not required in the file')
     print('--Additional Arguments. These can be added to the above action arguments.')      
     print('     -v (v)erbose listing is displayed')
     print('     -d (D)o not Delete files or folders in destination if not in source') 
@@ -150,17 +153,32 @@ if __name__=='__main__':
         print('\nArgument must start with a \'-\' (Dash)')
         printhelp()
         exit()
+    
+    args=sys.argv[1]
 
-    if 'h' in sys.argv[1]:
+    if 'h' in args:
         printhelp()
         exit()
-    elif sys.argv[1]=='--version':
+    elif args=='--version':
         print(f'\nVersion {ver}\n')
         exit()
 
+    if "M"  in args:
+        if os.path.exists('M.m')==False:
+            print('Macro file M.m does not exist')
+            exit()
+        file=open('M.m',"r")
+        line=file.readline()
+        if len(line)>7:
+            print ('Macro file M.m is malformed')
+            exit()
+        args=line
+        file.close()
+        if verbose==True: print (args)
+
     # Must Include Action item s or t
-    if 's' not in sys.argv[1] and 't' not in sys.argv[1]:
-        print ('ERROR: Must include -s (Sync) or -t (Test) in command line.')
+    if 's' not in args and 't' not in args:
+        print ('ERROR: Must include -s (S)ync or -t (T)est in command line.')
         exit()
 
     if len(sys.argv)!=4:
@@ -172,30 +190,30 @@ if __name__=='__main__':
         dDirectory=sys.argv[3]
     if verbose==True: print(sys.argv)
 
-    if 'v' in sys.argv[1]:
+    if 'v' in args:
         rverbose=True
     
-    if 'c' in sys.argv[1]:
+    if 'c' in args:
         doCheckSum=True
 
-    if 't' in sys.argv[1]:
+    if 't' in args:
         print('Testing Mode. No Changes will be committed.')
         sync=False
         doCheckSum=False
     else:
         sync=True
 
-    if 'r' in sys.argv[1]:
+    if 'r' in args:
         recurse=True
     
-    if 'f' in sys.argv[1]:
+    if 'f' in args:
         fsync=True
         doCheckSum=False
     
-    if 'y' in sys.argv[1]:
+    if 'y' in args:
         autoYes=True
 
-    if 'x' in sys.argv[1]:
+    if 'x' in args:
         remove_MAC=True
 
     # ====== Check Source and Destination Directories ========
@@ -289,7 +307,7 @@ if __name__=='__main__':
                 if verbose==True: print(f'{dfile} needs updated')
                 wfilesUF.append(status[2:])
     
-    if 'd' in sys.argv[1]:
+    if 'd' in args:
         if rverbose==True: print('Not deleting files from destination that do not exist in source via -d switch')
     else:
         for status in statuses[2]: #Items are NOT not in the Source
@@ -364,7 +382,7 @@ if __name__=='__main__':
         os.rmdir(dDirectory)
         print('Testing destination directory removed.\n')
 
-    if 't' in sys.argv[1]:
+    if 't' in args:
         print('\nTesting Mode. No Changes were committed.', end='')
 
     if rverbose==True:
