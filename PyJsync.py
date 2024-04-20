@@ -17,16 +17,20 @@
 # V1.5   - Added support for PyRemove_MAC.py to use -x to remove _MACOSX folders
 #          from source directory before syncing.
 # V1.6   - Replace sys.argv[1] with variable args and setup -M to use the macro file M.m
+# V1.7   - Prepare system for eventual gui interface. - Move main program to function and update global variables
+#          Also move system arguments to variables.
+#          Moved help file to help.h file
 
 '''
 FUTURE ENHANCEMENT:
--m (m)ove (instead of sync) - probably not implement because then it is no longer a SYNC :)
+-V mo(V)e (instead of sync) - probably not implement because then it is no longer a SYNC :)
 
--
+-C for (C)opy files () (basically no delete)
+-a (Auto)rename files (when copy) no affect on Sync
 
 '''
 
-ver='1.6'
+ver='1.7a'
 
 import os
 #from os import.system, name
@@ -36,18 +40,7 @@ import hashlib
 from stat import ST_SIZE
 import sys
 import PyRemove_MAC
-
-verbose = False
-cverbose = True
-rverbose = False #Runtime verbose
-filesize=0.00
-transfersize=0.00
-recurse=False
-doCheckSum=False
-testdir=False
-fsync=False
-autoYes=False
-remove_MAC=False
+from cnfg import *
 
 #objects
 class directoryandfiles:
@@ -71,37 +64,9 @@ class directoryandfiles:
     
 def printhelp():
     # This will print the help file to the console
-    print('\n********** Help File **********\n')
-    print('--Three(3) parameters are required:')
-    print('  PyJsync.py -arguments "Source Folder" "Destination Folder"\n')
-    print('--Action Arguments: 1 is required')
-    print('     -s do the (S)ync. This checks to see if size and date are different')
-    print('        default is sync to destination and only checks if the file size and')
-    print('        date are different (does not compare if date is newer/older)')
-    print('        by defult this does not recurse sub directories.')
-    print('     -t (T)est do not sync, this overrides the -s and will not perform the.')
-    print('        actual sync, but uses all other arguments to "test" the outcome.\n')  
-    print('     -f Replicate (F)older structure. Respects additional arguments (-vdry)')   
-    print('        cancels -s (sync) for files. Without -r not much will happen except')  
-    print('        creating the initial destination directory if it doesn\'t exist')  
-    print('     -M Uses a (M)acro file M.m with a single line file with the arguments')
-    print('        to set as defaults. The dash - is not required in the file')
-    print('--Additional Arguments. These can be added to the above action arguments.')      
-    print('     -v (v)erbose listing is displayed')
-    print('     -d (D)o not Delete files or folders in destination if not in source') 
-    print('     -r (R)ecurse sub directories') 
-    print('     -c (C)heck with MD5 Hash after file has been copied. Will provide error')
-    print('        if file does not match. Not this could significantly slow operation.')
-    print('     -y Automatically input (Y)es to create root directory if it does not exist.')
-    print('     -x Remove __MACOS(X) files from source before sync')
-    print('\n--These arguments can not be mixed')
-    print('     --help    Prints this help file')
-    print('     -h        This help file is displayed (is ignored if mixed)')
-    print('     --version Prints the Version number.')
-    print('\nNOTES: If Source Directory doesn\'t exist, Program will terminate.')
-    print('       If Destination directory doesn\'t exist, user will be prompted to\n       create directory.')
-    print('       This is over ridden with the -y argument.')
-    print('\n')
+    h=open('help.h','r')
+    help=h.read()
+    print (help)
 
 def getmatchstatus(slist,dlist):
     '''returns a list with 3 lists as follows:\n
@@ -136,32 +101,24 @@ def clearscreen():
         os.system('clear')
     
 
-if __name__=='__main__':
-    
-    clearscreen()
-        
-    print(f'\nPyJsync {ver} by Jarrett McAlicher')
+def pyjsync(args, sDirectory, dDirectory):   
 
-    # *** SETUP ***
-    if verbose==True: print(sys.argv)
-
-    if len(sys.argv)==1: 
-        printhelp()
-        exit()
+    global verbose
+    global cverbose
     
-    if sys.argv[1][0]!='-':
-        print('\nArgument must start with a \'-\' (Dash)')
-        printhelp()
-        exit()
-    
-    args=sys.argv[1]
+    #set defaults for variables
+    global rverbose
+    filesize=0
+    transfersize=0
+    recurse=False
+    doCheckSum=False
+    testdir=False
+    fsync=False
+    autoYes=False
+    remove_MAC=False
+    gui=False
 
-    if 'h' in args:
-        printhelp()
-        exit()
-    elif args=='--version':
-        print(f'\nVersion {ver}\n')
-        exit()
+    # ==== Parce out the arguments
 
     if "M"  in args:
         if os.path.exists('M.m')==False:
@@ -176,28 +133,23 @@ if __name__=='__main__':
         file.close()
         if verbose==True: print (args)
 
-    # Must Include Action item s or t
-    if 's' not in args and 't' not in args:
-        print ('ERROR: Must include -s (S)ync or -t (T)est in command line.')
-        exit()
+        # Must Include Action item s or t
+        if 's' not in args and 't' not in args:
+            print ('ERROR: Must include -s (S)ync or -t (T)est in command line.')
+            exit()
 
-    if len(sys.argv)!=4:
-        print('\nPlease Specify at least 3 arguments or -h for help\n')
-        exit()
-    
-    if len(sys.argv)==4:
-        sDirectory=sys.argv[2]
-        dDirectory=sys.argv[3]
-    if verbose==True: print(sys.argv)
+        if len(sys.argv)!=4:
+            print('\nPlease Specify at least 3 arguments or -h for help\n')
+            exit()
 
-    if 'v' in args:
-        rverbose=True
+        if 'v' in args:
+            rverbose=True
     
     if 'c' in args:
         doCheckSum=True
 
     if 't' in args:
-        print('Testing Mode. No Changes will be committed.')
+        if gui==False: print('Testing Mode. No Changes will be committed.')
         sync=False
         doCheckSum=False
     else:
@@ -251,11 +203,11 @@ if __name__=='__main__':
 
 
 
-
+    
     # ====== Main Part of Program =========
     
     if remove_MAC==True:
-        print('Removing _MACOSX Folders.')
+        if gui==False: print('Removing _MACOSX Folders.')
         mfiles=PyRemove_MAC.mfiles(sDirectory)
         if mfiles.checkqty()>0 and sync==True:
             mfiles.remove()
@@ -387,13 +339,99 @@ if __name__=='__main__':
 
     if rverbose==True:
         if fsync==False:
-            print (f'\n*** Completed {len(wfilesDD)+len(wfilesDF)+len(wfilesUF)+len(wfilesNF)+len(wfilesND)} file operations ***')
+            print (f'\n*** Completed {len(wfilesDD)+len(wfilesDF)+len(wfilesUF)+len(wfilesNF)+len(wfilesND)} file operations ***\n')
         else:
-            print (f'\n*** Completed {len(wfilesDD)+len(wfilesDF)+len(wfilesND)} directory operations ***')
+            print (f'\n*** Completed {len(wfilesDD)+len(wfilesDF)+len(wfilesND)} directory operations ***\n')
         if fsync==False: print (f'*** Total bytes synced: {transfersize:,}')
-        if fsync==False: print (f'*** Total megabytes synced: {round(transfersize/1048576,2):,}')
+        if fsync==False: print (f'*** Total megabytes synced: {round(transfersize/1048576,2):,}\n')
     else:
         if fsync==False:
-            print(f'*** {len(wfilesDD)+len(wfilesDF)+len(wfilesUF)+len(wfilesNF)+len(wfilesND)} Operation(s) Completed ***')
+            print(f'*** {len(wfilesDD)+len(wfilesDF)+len(wfilesUF)+len(wfilesNF)+len(wfilesND)} Operation(s) Completed ***\n')
         else:
-            print(f'*** {len(wfilesDD)+len(wfilesDF)+len(wfilesND)} Directory Operation(s) Completed ***')
+            print(f'*** {len(wfilesDD)+len(wfilesDF)+len(wfilesND)} Directory Operation(s) Completed ***\n')
+
+
+if __name__=='__main__':
+
+    clearscreen()
+        
+    print(f'\nPyJsync {ver} by Jarrett McAlicher')
+
+    # *** SETUP ***
+    if verbose==True: print(sys.argv)
+
+    if len(sys.argv)==1: 
+        printhelp()
+        exit()
+    
+    if sys.argv[1][0]!='-':
+        print('\nArgument must start with a \'-\' (Dash)')
+        printhelp()
+        exit()
+    
+    args=sys.argv[1]
+
+    if 'h' in args:
+        printhelp()
+        exit()
+    elif args=='--version':
+        print(f'\nVersion {ver}\n')
+        exit()
+
+    if 's' in args:
+        sync=True
+    
+    if 'y' in args:
+        autoYes=True
+    
+    if "M" in args:
+        sync=True
+        autoYes=True
+    
+    if "t" in args:
+        sync=False
+        doCheckSum=False   
+    
+    # ====== Check Source and Destination Directories ========
+    if len(sys.argv)==4:
+        sDirectory=sys.argv[2]
+        dDirectory=sys.argv[3]
+    else:
+        printhelp()
+        exit()
+    if verbose==True: print(sys.argv)
+
+    if verbose==True: print(f'*** {sDirectory} and {dDirectory}')
+    if os.path.exists(sDirectory)==False:
+        print(f'\nERROR: Source directory does not exist\n - {sDirectory}\n')
+        exit()
+    
+    if os.path.exists(dDirectory)==False:
+        if autoYes==False:
+            print(f'\nDestination directory "{dDirectory} does not exist.')
+            answer=input('Would you like it to be created? (y/n):')
+            if answer=='y':
+                
+                if sync==True:
+                    print('Creating destination path . . . ',end='')
+                    os.makedirs(dDirectory)
+                    print('Directory created.\n')
+                else:
+                    print('TESTING: Source Directory has been created and will be deleted when this test\nrun is complete.')
+                    os.makedirs(dDirectory)
+                    testdir=True
+            else:
+                print('Operation cancelled.\n')
+                exit()
+        else:
+            if sync==True:
+                print('Creating destination path . . . ',end='')
+                os.makedirs(dDirectory)
+                print('Directory created.\n')
+            else:
+                print('TESTING: Source Directory has been created and will be deleted when this test\nrun is complete.')
+                os.makedirs(dDirectory)
+                testdir=True
+
+
+    pyjsync(args, sDirectory, dDirectory)

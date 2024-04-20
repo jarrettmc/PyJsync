@@ -61,17 +61,21 @@ class mfiles():
             print(dir)  
 
     def remove(self):
-        '''Removes the folders in the list.'''
+        '''Removes the folders in the list.
+        Returns 2 if no directory's to remove, 1 if ERROR and 0 if successful'''
         if len(self.data)==0: 
             print('No Directories to remove.')
-            return 0
+            return 2
+        
 
         for dir in self.data:
             if verbose==True: print (f'Removing Directory {dir}.') 
             try:
                 shutil.rmtree(dir)
             except:
-                print(f'ERROR: Error removing directory {dir}')  
+                print(f'ERROR: Error removing directory {dir}') 
+                return 1 
+        return 0
               
 
 if __name__=="__main__":
