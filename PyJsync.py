@@ -20,19 +20,20 @@
 # V1.7   - Prepare system for eventual gui interface. - Move main program to function and update global variables
 #          Also move system arguments to variables.
 #          Moved help file to help.h file
+# V1.8    -Add "C" Copy (no delete) as well as an auto-rename
+#          Added filename() function to provide a non-duplcate filename
+#          Various output enhancements on the command line verison
 
 '''
 FUTURE ENHANCEMENT:
--V mo(V)e (instead of sync) - probably not implement because then it is no longer a SYNC :)
-
--C for (C)opy files () (basically no delete)
--a (Auto)rename files (when copy) no affect on Sync
+-V mo(V)e (instead of sync) (copy with a source delete.)
 
 '''
 
-ver='1.7a'
+ver='1.8'
 
 import os
+import os.path
 #from os import.system, name
 import shutil
 #import fnmatch # to be implemented later for filename matching.
@@ -41,6 +42,10 @@ from stat import ST_SIZE
 import sys
 import PyRemove_MAC
 from cnfg import *
+
+verbose=False
+cverbose=True
+rverbose=True #May make this default for command version.
 
 #objects
 class directoryandfiles:
@@ -66,7 +71,7 @@ def printhelp():
     # This will print the help file to the console
     h=open('help.h','r')
     help=h.read()
-    print (help)
+    if gui==False: print (help)
 
 def getmatchstatus(slist,dlist):
     '''returns a list with 3 lists as follows:\n
@@ -99,6 +104,28 @@ def clearscreen():
         os.system('cls')
     else:
         os.system('clear')
+
+def filename(filepath):
+    if os.path.isfile(filepath)==False:
+        if verbose==True: print(filepath)
+        return filepath  
+    dup=False
+    num=1
+    file, ext = os.path.splitext(filepath)
+    if verbose==True:
+        print (f'file: {file}\next: {ext}')
+    if file.rfind("(")!=-1:
+        file=file[:file.rfind("(")]
+        file.strip()
+    while dup==False:
+        nfile=f'{file} ({num}){ext}'
+        if os.path.isfile(nfile)==False:
+            if verbose==True: print (nfile)
+            return nfile
+            break
+        else:
+            num+=1
+    pass
     
 
 def pyjsync(args, sDirectory, dDirectory):   
@@ -117,6 +144,7 @@ def pyjsync(args, sDirectory, dDirectory):
     autoYes=False
     remove_MAC=False
     gui=False
+    copy=False
 
     # ==== Parce out the arguments
 
@@ -148,6 +176,10 @@ def pyjsync(args, sDirectory, dDirectory):
     if 'c' in args:
         doCheckSum=True
 
+    if 'C' in args:
+        copy=True
+        sync=False
+
     if 't' in args:
         if gui==False: print('Testing Mode. No Changes will be committed.')
         sync=False
@@ -168,36 +200,39 @@ def pyjsync(args, sDirectory, dDirectory):
     if 'x' in args:
         remove_MAC=True
 
+    if 'g' in args: #this is only used internally when passing from gui.
+        gui=True
+
     # ====== Check Source and Destination Directories ========
     if verbose==True: print(f'*** {sDirectory} and {dDirectory}')
     if os.path.exists(sDirectory)==False:
-        print(f'\nERROR: Source directory does not exist\n - {sDirectory}\n')
+        if gui==False: print(f'\nERROR: Source directory does not exist\n - {sDirectory}\n')
         exit()
     
     if os.path.exists(dDirectory)==False:
         if autoYes==False:
-            print(f'\nDestination directory "{dDirectory} does not exist.')
+            if gui==False: print(f'\nDestination directory "{dDirectory} does not exist.')
             answer=input('Would you like it to be created? (y/n):')
             if answer=='y':
                 
                 if sync==True:
-                    print('Creating destination path . . . ',end='')
+                    if gui==False: print('Creating destination path . . . ',end='')
                     os.makedirs(dDirectory)
-                    print('Directory created.\n')
+                    if gui==False: print('Directory created.\n')
                 else:
-                    print('TESTING: Source Directory has been created and will be deleted when this test\nrun is complete.')
+                    if gui==False: print('TESTING: Source Directory has been created and will be deleted when this test\nrun is complete.')
                     os.makedirs(dDirectory)
                     testdir=True
             else:
-                print('Operation cancelled.\n')
+                if gui==False: print('Operation cancelled.\n')
                 exit()
         else:
             if sync==True:
-                print('Creating destination path . . . ',end='')
+                if gui==False: print('Creating destination path . . . ',end='')
                 os.makedirs(dDirectory)
-                print('Directory created.\n')
+                if gui==False: print('Directory created.\n')
             else:
-                print('TESTING: Source Directory has been created and will be deleted when this test\nrun is complete.')
+                if gui==False: print('TESTING: Source Directory has been created and will be deleted when this test\nrun is complete.')
                 os.makedirs(dDirectory)
                 testdir=True
 
@@ -252,14 +287,17 @@ def pyjsync(args, sDirectory, dDirectory):
                 print(f'{dfile} needs updated')
                 #print(gethash(sfile)+'|'+ gethash(dfile)) #Not used anymore at this point... 
             
-            if getifdiff(sfile,dfile)==True:
-                if verbose==True: print(f'{dfile} matches size/date .. Skipping')
-            
-            else:
-                if verbose==True: print(f'{dfile} needs updated')
+            if copy==False:
+                if getifdiff(sfile,dfile)==True:
+                    if verbose==True: print(f'{dfile} matches size/date .. Skipping')          
+                else:
+                    if verbose==True: print(f'{dfile} needs updated')
+                    wfilesUF.append(status[2:])
+            if copy==True:
                 wfilesUF.append(status[2:])
-    
-    if 'd' in args:
+                if 'd' not in args:
+                    args=args+'d'
+    if 'd' in args and copy==False:
         if rverbose==True: print('Not deleting files from destination that do not exist in source via -d switch')
     else:
         for status in statuses[2]: #Items are NOT not in the Source
@@ -277,9 +315,9 @@ def pyjsync(args, sDirectory, dDirectory):
         for dir in wfilesND:
             if rverbose==True: print (f'  {dir}')
             try:
-                if sync==True: os.makedirs(dDirectory+dir)
+                if sync==True or copy==True: os.makedirs(dDirectory+dir)
             except FileExistsError:
-                print(f'{dir} already exists. Skipping.')
+                if gui==False: print(f'{dir} already exists. Skipping.')
 
         #if rverbose==True: print (f'Directories created: {len(wfilesND)}')
 
@@ -294,9 +332,9 @@ def pyjsync(args, sDirectory, dDirectory):
                 if sync==True and fsync==False: shutil.copy2(f'{sDirectory}{file}',f'{dDirectory}{file}')
                 if doCheckSum==True:
                     if gethash(sDirectory+file)!=gethash(dDirectory+file):
-                        print (f'ERROR: {dfile} does not match source after copy!!!')
-                        if cverbose==True: print (f'Source File: {sfile} {gethash(sfile)}\nDestination File: {dfile} {gethash(dfile)}')
-                    print ('Checksum on copy (new) matches')
+                        if gui==False: print (f'ERROR: {dfile} does not match source after copy!!!')
+                        if verbose==True: print (f'Source File: {sfile} {gethash(sfile)}\nDestination File: {dfile} {gethash(dfile)}')
+                    if gui==False: print ('Checksum on copy (new) matches')
         #if rverbose==True: print (f'Files created: {len(wfilesNF)}')
 
     if len(wfilesUF)>0:
@@ -307,35 +345,39 @@ def pyjsync(args, sDirectory, dDirectory):
                 filesize=file_stats.st_size
                 transfersize+=filesize
                 if rverbose==True: print(f'  {file} with {filesize} bytes')
-                if sync==True: os.remove(dDirectory+file)
-                if sync==True: shutil.copy2(f'{sDirectory}{file}',f'{dDirectory}{file}')
+                if sync==True: 
+                    os.remove(dDirectory+file)
+                    shutil.copy2(f'{sDirectory}{file}',f'{dDirectory}{file}')
                 if doCheckSum==True:
                     if gethash(sfile)!=gethash(dfile):
-                        print (f'ERROR: {dfile} does not match source after copy!!!')
-                        if cverbose==True: print (f'Source File: {sfile} {gethash(sfile)}\nDestination File: {dfile} {gethash(dfile)}')
-                    print ('Checksum on update matches')
-        #if rverbose==True: print (f'Files updated: {len(wfilesUF)}')
+                        if gui==False: print (f'ERROR: {dfile} does not match source after copy!!!')
+                        if verbose==True: print (f'Source File: {sfile} {gethash(sfile)}\nDestination File: {dfile} {gethash(dfile)}')
+                    if gui==False: print ('Checksum on update matches')
+                if copy==True and testing==False:
+                    if verbose==True: print(f'{sDirectory}{file} to {filename(dDirectory+file)}')
+                    shutil.copy2(f'{sDirectory}{file}',f'{filename(dDirectory+file)}')
 
-    if len(wfilesDF)>0:
-        if rverbose==True: print('Deleting file(s):')
-        for file in wfilesDF:
-            if rverbose==True: print(f'  {file}')
-            if sync==True: os.remove(dDirectory+file)
-        #if rverbose==True: print (f'Files Deleted:  {len(wfilesDF)}')
-    
-    if len(wfilesDD)>0:
-        if rverbose==True: print ('Deleting directory(ies):')
-        for dir in wfilesDD:
-            if rverbose==True: print(f'  {dir}')
-            if sync==True: os.rmdir(dDirectory+dir)
-        #if rverbose==True: print (f'Directories deleted: {len(wfilesDD)}')
+        #if rverbose==True: print (f'Files updated: {len(wfilesUF)}')
+    if copy==False: #if Copy then do not delete any files or directories
+        if len(wfilesDF)>0:
+            if rverbose==True: print('Deleting file(s):')
+            for file in wfilesDF:
+                if rverbose==True: print(f'  {file}')
+                if sync==True: os.remove(dDirectory+file)
+            #if rverbose==True: print (f'Files Deleted:  {len(wfilesDF)}')
+        if len(wfilesDD)>0:
+            if rverbose==True: print ('Deleting directory(ies):')
+            for dir in wfilesDD:
+                if rverbose==True: print(f'  {dir}')
+                if sync==True: os.rmdir(dDirectory+dir)
+            #if rverbose==True: print (f'Directories deleted: {len(wfilesDD)}')
     
     if testdir==True:
         os.rmdir(dDirectory)
-        print('Testing destination directory removed.\n')
+        if gui==False: print('Testing destination directory removed.\n')
 
     if 't' in args:
-        print('\nTesting Mode. No Changes were committed.', end='')
+        if gui==False: print('\nTesting Mode. No Changes were committed.', end='')
 
     if rverbose==True:
         if fsync==False:
@@ -346,16 +388,16 @@ def pyjsync(args, sDirectory, dDirectory):
         if fsync==False: print (f'*** Total megabytes synced: {round(transfersize/1048576,2):,}\n')
     else:
         if fsync==False:
-            print(f'*** {len(wfilesDD)+len(wfilesDF)+len(wfilesUF)+len(wfilesNF)+len(wfilesND)} Operation(s) Completed ***\n')
+            if gui==False: print(f'*** {len(wfilesDD)+len(wfilesDF)+len(wfilesUF)+len(wfilesNF)+len(wfilesND)} Operation(s) Completed ***\n')
         else:
-            print(f'*** {len(wfilesDD)+len(wfilesDF)+len(wfilesND)} Directory Operation(s) Completed ***\n')
+            if gui==False: print(f'*** {len(wfilesDD)+len(wfilesDF)+len(wfilesND)} Directory Operation(s) Completed ***\n')
 
-
+#==============================================================================
 if __name__=='__main__':
 
     clearscreen()
         
-    print(f'\nPyJsync {ver} by Jarrett McAlicher')
+    if gui==False: print(f'\nPyJsync {ver} by Jarrett McAlicher')
 
     # *** SETUP ***
     if verbose==True: print(sys.argv)
@@ -365,7 +407,7 @@ if __name__=='__main__':
         exit()
     
     if sys.argv[1][0]!='-':
-        print('\nArgument must start with a \'-\' (Dash)')
+        if gui==False: print('\nArgument must start with a \'-\' (Dash)')
         printhelp()
         exit()
     
@@ -375,7 +417,7 @@ if __name__=='__main__':
         printhelp()
         exit()
     elif args=='--version':
-        print(f'\nVersion {ver}\n')
+        if gui==False: print(f'\nVersion {ver}\n')
         exit()
 
     if 's' in args:
@@ -392,6 +434,10 @@ if __name__=='__main__':
         sync=False
         doCheckSum=False   
     
+    if 'C' in args:
+        copy=True
+        sync=False
+    
     # ====== Check Source and Destination Directories ========
     if len(sys.argv)==4:
         sDirectory=sys.argv[2]
@@ -403,33 +449,33 @@ if __name__=='__main__':
 
     if verbose==True: print(f'*** {sDirectory} and {dDirectory}')
     if os.path.exists(sDirectory)==False:
-        print(f'\nERROR: Source directory does not exist\n - {sDirectory}\n')
+        if gui==False: print(f'\nERROR: Source directory does not exist\n - {sDirectory}\n')
         exit()
     
     if os.path.exists(dDirectory)==False:
         if autoYes==False:
-            print(f'\nDestination directory "{dDirectory} does not exist.')
+            if gui==False: print(f'\nDestination directory "{dDirectory} does not exist.')
             answer=input('Would you like it to be created? (y/n):')
             if answer=='y':
                 
                 if sync==True:
-                    print('Creating destination path . . . ',end='')
+                    if gui==False: print('Creating destination path . . . ',end='')
                     os.makedirs(dDirectory)
-                    print('Directory created.\n')
+                    if gui==False: print('Directory created.\n')
                 else:
-                    print('TESTING: Source Directory has been created and will be deleted when this test\nrun is complete.')
+                    if gui==False and testing==True: print('TESTING: Source Directory has been created and will be deleted when this test\nrun is complete.')
                     os.makedirs(dDirectory)
                     testdir=True
             else:
-                print('Operation cancelled.\n')
+                if gui==False: print('Operation cancelled.\n')
                 exit()
         else:
             if sync==True:
-                print('Creating destination path . . . ',end='')
+                if gui==False: print('Creating destination path . . . ',end='')
                 os.makedirs(dDirectory)
-                print('Directory created.\n')
+                if gui==False: print('Directory created.\n')
             else:
-                print('TESTING: Source Directory has been created and will be deleted when this test\nrun is complete.')
+                if gui==False and testing==True: print('TESTING: Source Directory has been created and will be deleted when this test\nrun is complete.')
                 os.makedirs(dDirectory)
                 testdir=True
 
