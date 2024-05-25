@@ -2,7 +2,7 @@
 ## 
 
 ver='v1.0a'
-psver='1.7a'
+psver='1.8.1'
 
 import PyJsync as pj
 if pj.ver!=psver:
@@ -72,7 +72,7 @@ class mainwindow():
 
         self.sync=tk.StringVar()
         self.cb_sync=tk.Radiobutton(text='Sync',value='sync',variable=self.sync).grid(row=5,column=2, sticky='w')
-        self.cb_replicate=tk.Radiobutton(text='Replicate',value='replicate',variable=self.sync).grid(row=5, column=3, sticky='w')
+        self.cb_replicate=tk.Radiobutton(text='Copy',value='copy',variable=self.sync).grid(row=5, column=3, sticky='w')
         self.cb_test=tk.Radiobutton(text='Test',value='test',variable=self.sync).grid(row=5, column=4, sticky='w')
 
         tk.Label(text='Action Modifiers:').grid(row=6,column=1,sticky='w')
@@ -131,14 +131,14 @@ class mainwindow():
         self.window.update()
 
     def dosync(self):
-        args='-'
+        args='-yg' #g for GUI and y to automatically create directories.
         command=self.sync.get()
         if command=='sync':
             args=args+'s'
         elif command=='test':
             args=args+'t'
-        elif command=='replicate':
-            args=args+'f'
+        elif command=='copy':
+            args=args+'C'
         else:
             dialog('Error...','Must specify 1 Action Argument')
             return
@@ -179,7 +179,7 @@ class mainwindow():
         if testing==False:
             print (f'gui {gui}')
             printsettings()
-            pjs.mainprogram()
+            pjs.pyjsync(args,sDirectory,dDirectory)
 
 
 if __name__=='__main__':

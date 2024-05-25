@@ -20,9 +20,10 @@
 # V1.7   - Prepare system for eventual gui interface. - Move main program to function and update global variables
 #          Also move system arguments to variables.
 #          Moved help file to help.h file
-# V1.8    -Add "C" Copy (no delete) as well as an auto-rename
+# V1.8   - Add "C" Copy (no delete) as well as an auto-rename
 #          Added filename() function to provide a non-duplcate filename
 #          Various output enhancements on the command line verison
+# V1.8.1 - More updates to remove command line output when using GUI
 
 '''
 FUTURE ENHANCEMENT:
@@ -30,7 +31,7 @@ FUTURE ENHANCEMENT:
 
 '''
 
-ver='1.8'
+ver='1.8.1'
 
 import os
 import os.path
@@ -247,15 +248,15 @@ def pyjsync(args, sDirectory, dDirectory):
         if mfiles.checkqty()>0 and sync==True:
             mfiles.remove()
 
-    if rverbose==True: print(f'\nScanning Source...',end=' ')
+    if rverbose==True and gui==False: print(f'\nScanning Source...',end=' ')
     sfiles=directoryandfiles(sDirectory,recurse) #Source Directory and Files
     
-    if verbose==True: print(sfiles.data)
+    if verbose==True and gui==False: print(sfiles.data)
     if rverbose==True: print(f'Scanning Destination ...',end=' ')
     
     dfiles=directoryandfiles(dDirectory,recurse) #Destination Directory and Files
     if verbose==True: print(getmatchstatus(sfiles.data,dfiles.data))
-    if rverbose==True: print(f'Building Differences ...')
+    if rverbose==True and gui==False: print(f'Building Differences ...')
     
     statuses=getmatchstatus(sfiles.data,dfiles.data)
 
@@ -311,9 +312,9 @@ def pyjsync(args, sDirectory, dDirectory):
     # ===== This Part actually does the work.
 
     if len(wfilesND)>0:
-        if rverbose==True: print('Creating directory(ies):')
+        if rverbose==True and gui==False: print('Creating directory(ies):')
         for dir in wfilesND:
-            if rverbose==True: print (f'  {dir}')
+            if rverbose==True and gui==False: print (f'  {dir}')
             try:
                 if sync==True or copy==True: os.makedirs(dDirectory+dir)
             except FileExistsError:
@@ -323,12 +324,12 @@ def pyjsync(args, sDirectory, dDirectory):
 
     if len(wfilesNF)>0:
         if fsync==False:
-            if rverbose==True: print ('Creating file(s):')
+            if rverbose==True and gui==False: print ('Creating file(s):')
             for file in wfilesNF:
                 file_stats=os.stat(sDirectory+file)
                 filesize=file_stats.st_size
                 transfersize+=filesize
-                if rverbose==True: print(f'  {file} in {filesize} bytes')
+                if rverbose==True and gui==False: print(f'  {file} in {filesize} bytes')
                 if sync==True and fsync==False: shutil.copy2(f'{sDirectory}{file}',f'{dDirectory}{file}')
                 if doCheckSum==True:
                     if gethash(sDirectory+file)!=gethash(dDirectory+file):
@@ -339,12 +340,12 @@ def pyjsync(args, sDirectory, dDirectory):
 
     if len(wfilesUF)>0:
         if fsync==False:
-            if rverbose==True: print('Updating file(s):')
+            if rverbose==True and gui==False: print('Updating file(s):')
             for file in wfilesUF:
                 file_stats=os.stat(sDirectory+file)
                 filesize=file_stats.st_size
                 transfersize+=filesize
-                if rverbose==True: print(f'  {file} with {filesize} bytes')
+                if rverbose==True and gui==False: print(f'  {file} with {filesize} bytes')
                 if sync==True: 
                     os.remove(dDirectory+file)
                     shutil.copy2(f'{sDirectory}{file}',f'{dDirectory}{file}')
@@ -360,15 +361,15 @@ def pyjsync(args, sDirectory, dDirectory):
         #if rverbose==True: print (f'Files updated: {len(wfilesUF)}')
     if copy==False: #if Copy then do not delete any files or directories
         if len(wfilesDF)>0:
-            if rverbose==True: print('Deleting file(s):')
+            if rverbose==True and gui==False: print('Deleting file(s):')
             for file in wfilesDF:
-                if rverbose==True: print(f'  {file}')
+                if rverbose==True and gui==False: print(f'  {file}')
                 if sync==True: os.remove(dDirectory+file)
             #if rverbose==True: print (f'Files Deleted:  {len(wfilesDF)}')
         if len(wfilesDD)>0:
-            if rverbose==True: print ('Deleting directory(ies):')
+            if rverbose==True and gui==False: print ('Deleting directory(ies):')
             for dir in wfilesDD:
-                if rverbose==True: print(f'  {dir}')
+                if rverbose==True and gui==False: print(f'  {dir}')
                 if sync==True: os.rmdir(dDirectory+dir)
             #if rverbose==True: print (f'Directories deleted: {len(wfilesDD)}')
     
@@ -379,7 +380,7 @@ def pyjsync(args, sDirectory, dDirectory):
     if 't' in args:
         if gui==False: print('\nTesting Mode. No Changes were committed.', end='')
 
-    if rverbose==True:
+    if rverbose==True and gui==False:
         if fsync==False:
             print (f'\n*** Completed {len(wfilesDD)+len(wfilesDF)+len(wfilesUF)+len(wfilesNF)+len(wfilesND)} file operations ***\n')
         else:
