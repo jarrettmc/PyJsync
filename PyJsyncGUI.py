@@ -15,6 +15,8 @@ import PyRemove_MAC as prMAC
 import PyJsync as pjs
 from cnfg import *
 
+cverbose==True
+
 class dialog():
     def __init__(self,dtitle,dmessage):
         self.dbox=tk.Tk()
@@ -180,6 +182,7 @@ class mainwindow():
             print (f'gui {gui}')
             printsettings()
             pjs.pyjsync(args,sDirectory,dDirectory)
+            if cverbose==True: print('Completed...')
 
 
 if __name__=='__main__':

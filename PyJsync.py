@@ -24,6 +24,7 @@
 #          Added filename() function to provide a non-duplcate filename
 #          Various output enhancements on the command line verison
 # V1.8.1 - More updates to remove command line output when using GUI
+# V1.8.2 - Adding GUI dialog box
 
 '''
 FUTURE ENHANCEMENT:
@@ -252,7 +253,7 @@ def pyjsync(args, sDirectory, dDirectory):
     sfiles=directoryandfiles(sDirectory,recurse) #Source Directory and Files
     
     if verbose==True and gui==False: print(sfiles.data)
-    if rverbose==True: print(f'Scanning Destination ...',end=' ')
+    if rverbose==True and gui==False: print(f'Scanning Destination ...',end=' ')
     
     dfiles=directoryandfiles(dDirectory,recurse) #Destination Directory and Files
     if verbose==True: print(getmatchstatus(sfiles.data,dfiles.data))
@@ -392,6 +393,7 @@ def pyjsync(args, sDirectory, dDirectory):
             if gui==False: print(f'*** {len(wfilesDD)+len(wfilesDF)+len(wfilesUF)+len(wfilesNF)+len(wfilesND)} Operation(s) Completed ***\n')
         else:
             if gui==False: print(f'*** {len(wfilesDD)+len(wfilesDF)+len(wfilesND)} Directory Operation(s) Completed ***\n')
+
 
 #==============================================================================
 if __name__=='__main__':
